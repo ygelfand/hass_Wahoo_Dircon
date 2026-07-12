@@ -41,7 +41,7 @@ def _create_schema(hass, input: dict, flow: str = "config"):
         }),
     })
     cap_map = {}
-    for cp in ["speed", "speed_set", "pace", "incline", "incline_set", "distance", "time", "cadence", "hrm", "stride"]:
+    for cp in ["speed", "speed_set", "pace", "incline", "incline_set", "distance", "time", "cadence", "power", "resistance", "hrm", "stride"]:
         cap_map[vol.Required(cp, default=input.get(cp, False))] = selector({"boolean": {}})
     schema = schema.extend(cap_map)
     return schema
@@ -95,12 +95,12 @@ class ConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def __init__(self, entry):
-        self.config_entry = entry
+        self._entry = entry
 
     async def async_step_init(self, user_input=None):
         if user_input is None:
-            _LOGGER.debug(f"Making options: {self.config_entry.as_dict()}")
-            return self.async_show_form(step_id="init", data_schema=_create_schema(self.hass, self.config_entry.as_dict()["options"], flow="options"))
+            _LOGGER.debug(f"Making options: {self._entry.as_dict()}")
+            return self.async_show_form(step_id="init", data_schema=_create_schema(self.hass, self._entry.as_dict()["options"], flow="options"))
         else:
             _LOGGER.debug(f"Input: {user_input}")
             err, data = await _validate(self.hass, user_input)

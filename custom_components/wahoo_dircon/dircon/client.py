@@ -84,7 +84,7 @@ class DirconTcpClient:
                     result.append(read_chr)
                 if ch_uuid in notify_chrs and ch_flag == 4:
                     _LOGGER.debug(f"_async_configure(): Request notify: 0x{ch_uuid:x}")
-                    notify_chr = protocol.DirconPacket().build(protocol.DPKT_MSGID_ENABLE_CHARACTERISTIC_NOTIFICATIONS, seq = self._next_seq, uuids = [uuid])
+                    notify_chr = protocol.DirconPacket().build(protocol.DPKT_MSGID_ENABLE_CHARACTERISTIC_NOTIFICATIONS, seq = self._next_seq, uuids = [ch_uuid])
                     result.append(notify_chr)
 
         return result

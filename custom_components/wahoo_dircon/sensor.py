@@ -18,6 +18,10 @@ async def async_setup_entry(hass, entry, async_setup_entities):
         entities.append(_Distance(coordinator))
     if coordinator.has_feature("cadence"):
         entities.append(_Cadence(coordinator))
+    if coordinator.has_feature("power"):
+        entities.append(_Power(coordinator))
+    if coordinator.has_feature("resistance"):
+        entities.append(_Resistance(coordinator))
     if coordinator.has_feature("stride"):
         entities.append(_Stride(coordinator))
     if coordinator.has_feature("time"):
@@ -47,14 +51,41 @@ class _Cadence(ConnectedEntity, sensor.SensorEntity):
 
     def __init__(self, coordinator):
         super().__init__(coordinator)
-        self.with_name("Running cadence")
-        self._attr_native_unit_of_measurement = "spm"
+        self.with_name("Cadence")
+        self._attr_native_unit_of_measurement = "rpm"
         self._attr_suggested_display_precision = 0
         self._attr_state_class = "measurement"
         self._attr_icon = "mdi:metronome"
 
     def on_data_update(self, data: dict):
         value = data.get("cadence", 0)
+        self._attr_native_value = value if value > 0 else None
+
+class _Power(ConnectedEntity, sensor.SensorEntity):
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.with_name("Power")
+        self._attr_native_unit_of_measurement = "W"
+        self._attr_device_class = "power"
+        self._attr_state_class = "measurement"
+        self._attr_suggested_display_precision = 0
+
+    def on_data_update(self, data: dict):
+        value = data.get("power", 0)
+        self._attr_native_value = value if value > 0 else None
+
+class _Resistance(ConnectedEntity, sensor.SensorEntity):
+
+    def __init__(self, coordinator):
+        super().__init__(coordinator)
+        self.with_name("Resistance")
+        self._attr_suggested_display_precision = 0
+        self._attr_state_class = "measurement"
+        self._attr_icon = "mdi:knob"
+
+    def on_data_update(self, data: dict):
+        value = data.get("resistance", 0)
         self._attr_native_value = value if value > 0 else None
 
 class _Stride(ConnectedEntity, sensor.SensorEntity):

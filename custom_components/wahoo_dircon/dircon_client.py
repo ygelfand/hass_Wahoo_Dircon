@@ -14,8 +14,10 @@ async def async_fetch_capabilities(host: str, port: int) -> dict | None:
                 1:  "cadence",
                 2:  "distance",
                 3:  "incline",
+                7:  "resistance",
                 10: "hrm",
                 12: "time",
+                14: "power",
             }
             _LOGGER.debug(f"_parse_features() FTMS features flag: 0x{flag:x}")
             for key, value in flag_mapping.items():
@@ -55,6 +57,51 @@ def prepare_data_client(host: str, port: int, callback) -> dict | None:
 
     def _parse_data(chr, data, op):
         result = {}
+        if chr == 0x2ad2 and len(data) >= 2:
+            # FTMS Indoor Bike Data (cycling). Fields are optional, gated by the
+            # 16-bit flags field; instantaneous speed is present unless bit 0 is set.
+            flag = int.from_bytes(data[:2], "little")
+            index = 2
+            if flag & 1 == 0:
+                result["speed"] = int.from_bytes(data[index:index+2], "little") / 100.0 # Km/h
+                index += 2
+            if flag & (1 << 1): # Average speed
+                index += 2
+            if flag & (1 << 2): # Instantaneous cadence, 1/2 rpm
+                result["cadence"] = int.from_bytes(data[index:index+2], "little") / 2.0
+                index += 2
+            if flag & (1 << 3): # Average cadence
+                index += 2
+            if flag & (1 << 4): # Total distance, 3 bytes, meters
+                result["distance"] = int.from_bytes(data[index:index+3], "little")
+                index += 3
+            if flag & (1 << 5): # Resistance level, signed
+                result["resistance"] = int.from_bytes(data[index:index+2], "little", signed=True)
+                index += 2
+            if flag & (1 << 6): # Instantaneous power, signed watts
+                result["power"] = int.from_bytes(data[index:index+2], "little", signed=True)
+                index += 2
+            if flag & (1 << 7): # Average power
+                index += 2
+            if flag & (1 << 8): # Expended energy: total(2) + per hour(2) + per min(1)
+                index += 5
+            if flag & (1 << 9): # Heart rate
+                result["hrm"] = data[index]
+                index += 1
+            if flag & (1 << 10): # Metabolic equivalent
+                index += 1
+            if flag & (1 << 11): # Elapsed time, seconds
+                result["time"] = int.from_bytes(data[index:index+2], "little")
+                index += 2
+            _LOGGER.debug(f"_parse_data() Indoor Bike = {result}")
+        if chr == 0x2a37 and len(data) >= 2:
+            # Heart Rate Measurement: byte 0 flags, bit 0 selects uint8/uint16 value.
+            flag = data[0]
+            if flag & 1:
+                result["hrm"] = int.from_bytes(data[1:3], "little")
+            else:
+                result["hrm"] = data[1]
+            _LOGGER.debug(f"_parse_data() HR = {result}")
         if chr == 0x2acd:
             # 08:01:64:00:00:00:00:00:00
             flag = int.from_bytes(data[:2], "little")
@@ -114,7 +161,7 @@ def prepare_data_client(host: str, port: int, callback) -> dict | None:
     return client
 
 async def run_data_client(client: DirconTcpClient):
-    return await client.async_run([0x2acc, 0x2ad3, 0x2a54], [0x2acd, 0x2ada, 0x2a53, 0x2ad3], True)
+    return await client.async_run([0x2acc, 0x2ad3, 0x2a54], [0x2acd, 0x2ada, 0x2a53, 0x2ad3, 0x2ad2, 0x2a37], True)
 
 async def write_data_client(client: DirconTcpClient, field: int, value: float) -> bool:
     if field == "speed":
