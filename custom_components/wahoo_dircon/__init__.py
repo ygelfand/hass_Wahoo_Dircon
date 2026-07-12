@@ -31,16 +31,12 @@ async def async_setup_entry(hass: HomeAssistant, entry):
     await coordinator.async_config_entry_first_refresh()
     await coordinator.async_load()
 
-    for p in PLATFORMS:
-        hass.async_create_task(
-            hass.config_entries.async_forward_entry_setup(entry, p)
-        )
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 async def async_unload_entry(hass: HomeAssistant, entry):
     coordinator = hass.data[DOMAIN]["devices"][entry.entry_id]
-    for p in PLATFORMS:
-        await hass.config_entries.async_forward_entry_unload(entry, p)
+    await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     await coordinator.async_unload()
     hass.data[DOMAIN]["devices"].pop(entry.entry_id)
     return True
