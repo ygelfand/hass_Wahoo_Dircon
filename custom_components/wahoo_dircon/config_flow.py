@@ -50,15 +50,13 @@ class ConfigFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_zeroconf(self, zc_input=None):
         _LOGGER.debug(f"async_step_zeroconf(): {zc_input}")
-        props = dict(zc_input.properties or {})
         data = {
             "title": zc_input.name.split(".")[0],
             "host": str(zc_input.ip_address),
             "port": zc_input.port,
         }
         self.context["title_placeholders"] = data
-        unique = props.get("mac-address") or props.get("serial-number") \
-            or "{}:{}".format(data["host"], data["port"])
+        unique = "{}:{}".format(data["host"], data["port"])
         await self.async_set_unique_id(unique)
         self._abort_if_unique_id_configured(updates={"host": data["host"], "port": data["port"]})
         return self.async_show_form(step_id="user", data_schema=_create_schema(self.hass, data))
