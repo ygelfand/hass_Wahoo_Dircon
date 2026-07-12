@@ -54,12 +54,18 @@ class DirconPacket:
         resp = bytearray([self._version, self._id, self._seq, self._code])
         if self._id == DPKT_MSGID_DISCOVER_SERVICES:
             resp.extend([0, 0]) # Length is 0
-        if self._id in [DPKT_MSGID_DISCOVER_CHARACTERISTICS, DPKT_MSGID_READ_CHARACTERISTIC, DPKT_MSGID_ENABLE_CHARACTERISTIC_NOTIFICATIONS]:
+        if self._id in [DPKT_MSGID_DISCOVER_CHARACTERISTICS, DPKT_MSGID_READ_CHARACTERISTIC]:
             resp.extend((len(self._uuids) * 16).to_bytes(2, "big"))
             for uuid in self._uuids:
                 resp.extend(uuid.to_bytes(4, "big"))
                 resp.extend(DPKT_UUID_SUFFIX)
-            
+
+        if self._id == DPKT_MSGID_ENABLE_CHARACTERISTIC_NOTIFICATIONS:
+            resp.extend((16 + 1).to_bytes(2, "big"))
+            resp.extend(self._uuids[0].to_bytes(4, "big"))
+            resp.extend(DPKT_UUID_SUFFIX)
+            resp.append(0x01)
+
         if self._id == DPKT_MSGID_WRITE_CHARACTERISTIC:
             resp.extend((16 + len(self._data)).to_bytes(2, "big"))
             resp.extend(self._uuids[0].to_bytes(4, "big"))
