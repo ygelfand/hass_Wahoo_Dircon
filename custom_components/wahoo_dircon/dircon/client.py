@@ -149,6 +149,10 @@ class DirconTcpClient:
                     if not resp.is_success():
                         _LOGGER.warn(f"async_run(): Invalid response received: 0x{resp._code:x}")
                         break
+                    if not resp._uuids:
+                        # e.g. bare acknowledgements with no characteristic UUID
+                        _LOGGER.debug(f"async_run(): Skipping message with no UUID: 0x{resp._id:x}")
+                        continue
                     _LOGGER.debug(f"async_run(): Process message: 0x{resp._id:x} 0x{resp._uuids[0]:x}: {resp._data.hex(':')}")
                     for _l in self._chr_listeners:
                         _l(resp._uuids[0], resp._data, resp._id)

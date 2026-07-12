@@ -90,7 +90,7 @@ class DirconPacket:
                 self._uuids.append(first_part)
             return self
 
-        if self._id in [DPKT_MSGID_READ_CHARACTERISTIC, DPKT_MSGID_UNSOLICITED_CHARACTERISTIC_NOTIFICATION, DPKT_MSGID_WRITE_CHARACTERISTIC]:
+        if self._id in [DPKT_MSGID_READ_CHARACTERISTIC, DPKT_MSGID_UNSOLICITED_CHARACTERISTIC_NOTIFICATION, DPKT_MSGID_WRITE_CHARACTERISTIC, DPKT_MSGID_ENABLE_CHARACTERISTIC_NOTIFICATIONS]:
             self._uuids.append(int.from_bytes(body[:4], "big"))
             self._data = body[16:]
             return self

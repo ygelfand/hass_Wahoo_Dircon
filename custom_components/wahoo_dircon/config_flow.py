@@ -31,14 +31,14 @@ def _create_schema(hass, input: dict, flow: str = "config"):
         vol.Required("host", default=input.get("host")): selector({
             "text": {}
         }),
-        vol.Required("port", default=input.get("port")): selector({
+        vol.Required("port", default=input.get("port")): vol.All(selector({
             "number": {
                 "min": 0,
                 "max": 65535,
                 "step": 1,
                 "mode": "box",
             }
-        }),
+        }), vol.Coerce(int)),
     })
     cap_map = {}
     for cp in ["speed", "speed_set", "pace", "incline", "incline_set", "distance", "time", "cadence", "power", "resistance", "hrm", "stride"]:

@@ -110,7 +110,7 @@ class _Speed(ConnectedEntity, sensor.SensorEntity):
         self._attr_native_unit_of_measurement = "km/h"
         self._attr_suggested_unit_of_measurement = "km/h"
         self._attr_device_class = "speed"
-        self._attr_state_class = "measure"
+        self._attr_state_class = "measurement"
         self._attr_suggested_display_precision = 1
 
     def on_data_update(self, data: dict):
@@ -123,7 +123,7 @@ class _Incline(ConnectedEntity, sensor.SensorEntity):
         super().__init__(coordinator)
         self.with_name("Incline", "Incline_Sensor")
         self._attr_native_unit_of_measurement = "%"
-        self._attr_state_class = "measure"
+        self._attr_state_class = "measurement"
         self._attr_suggested_display_precision = 1
         self._attr_icon = "mdi:angle-acute"
 
@@ -166,7 +166,7 @@ class _Pace(ConnectedEntity, sensor.SensorEntity):
         super().__init__(coordinator)
         self.with_name("Pace")
         self._attr_native_unit_of_measurement = "s"
-        self._attr_suggested_display_precision = "min"
+        self._attr_suggested_unit_of_measurement = "min"
         self._attr_suggested_display_precision = 2
         self._attr_device_class = "duration"
         self._attr_state_class = "measurement"

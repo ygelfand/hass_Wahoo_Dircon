@@ -66,14 +66,15 @@ class Coordinator(DataUpdateCoordinator, zc.ServiceListener):
 
     async def async_load(self):
         _LOGGER.debug(f"async_load(): ")
-        _zeroconf = await zeroconf.async_get_instance(self.hass)
-        _zeroconf.add_service_listener(ZC_TYPE, self)
+        self._zeroconf = await zeroconf.async_get_instance(self.hass)
+        self._zeroconf.add_service_listener(ZC_TYPE, self)
 
     async def async_unload(self):
         _LOGGER.debug(f"async_unload(): ")
         self.__listeners = []
         await self._client.async_close()
-        _zeroconf.add_remove_listener(ZC_TYPE, self)
+        if getattr(self, "_zeroconf", None) is not None:
+            self._zeroconf.remove_service_listener(self)
     
     def _add_listener(self, listener):
         self.__listeners.append(listener)
