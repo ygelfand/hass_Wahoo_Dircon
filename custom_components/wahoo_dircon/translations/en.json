@@ -15,7 +15,9 @@
           "incline_set": "Control inclination",
           "distance": "Distance sensor",
           "time": "Time sensor",
-          "cadence": "Running cadence sensor",
+          "cadence": "Cadence sensor",
+          "power": "Power sensor",
+          "resistance": "Resistance sensor",
           "hrm": "Hearth rate sensor",
           "stride": "Stride sensor"
         }
@@ -39,7 +41,9 @@
           "incline_set": "Control inclination",
           "distance": "Distance sensor",
           "time": "Time sensor",
-          "cadence": "Running cadence sensor",
+          "cadence": "Cadence sensor",
+          "power": "Power sensor",
+          "resistance": "Resistance sensor",
           "hrm": "Heart rate sensor",
           "stride": "Stride sensor"
         }

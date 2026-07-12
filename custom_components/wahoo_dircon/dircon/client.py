@@ -40,15 +40,14 @@ class DirconTcpClient:
         return self._seq
 
     async def _async_read_packet(self) -> protocol.DirconPacket:
-        header = await self._reader.read(protocol.DPKT_MESSAGE_HEADER_LENGTH)
-        if len(header) != protocol.DPKT_MESSAGE_HEADER_LENGTH:
-            _LOGGER.warn(f"_async_read_packet(): Unexpected header size")
-            header = [0x01, protocol.DPKT_MSGID_ERROR, 0x00, protocol.DPKT_RESPCODE_UNEXPECTED_ERROR, 0x00, 0x00]
-        body_len = int.from_bytes(header[4:6], 'big')
-        body = await self._reader.read(body_len)
-        # _LOGGER.debug(f"_read_packet(): Header: {header.hex(':')}, len = {len}")
-        # _LOGGER.debug(f"_read_packet(): Body:   {body.hex(':')}")
-
+        try:
+            header = await self._reader.readexactly(protocol.DPKT_MESSAGE_HEADER_LENGTH)
+            body_len = int.from_bytes(header[4:6], 'big')
+            body = await self._reader.readexactly(body_len) if body_len else b""
+        except asyncio.IncompleteReadError:
+            _LOGGER.debug("_async_read_packet(): connection closed while reading")
+            header = bytes([0x01, protocol.DPKT_MSGID_ERROR, 0x00, protocol.DPKT_RESPCODE_UNEXPECTED_ERROR, 0x00, 0x00])
+            body = b""
         return protocol.DirconPacket().parse_response(header, body)
 
     async def _async_write_packet(self, packet: protocol.DirconPacket):

@@ -30,6 +30,7 @@ class Coordinator(DataUpdateCoordinator, zc.ServiceListener):
             hass,
             _LOGGER,
             name=DOMAIN,
+            config_entry=entry,
             update_method=self._async_update,
         )
         self._entry = entry

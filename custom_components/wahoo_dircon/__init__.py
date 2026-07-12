@@ -19,8 +19,7 @@ CONFIG_SCHEMA = vol.Schema({
 
 async def _async_update_entry(hass, entry):
     _LOGGER.debug(f"_async_update_entry(): {entry}")
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    await hass.config_entries.async_reload(entry.entry_id)
 
 async def async_setup_entry(hass: HomeAssistant, entry):
     # data = entry.as_dict()["data"]
