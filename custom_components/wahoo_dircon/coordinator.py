@@ -36,18 +36,42 @@ class Coordinator(DataUpdateCoordinator, zc.ServiceListener):
         self._entry = entry
         self._config = entry.as_dict()["options"]
         self._title = entry.as_dict()["data"]["title"]
+        self._auto_connect = True
         self.__listeners = []
         self._client = prepare_data_client(self._config.get("host"), self._config.get("port"), self._on_dircon_data)
         self._client.add_status_listener(self._on_dircon_status)
 
-    def add_service(self, zc, type_: str, name: str) -> None:
-        _LOGGER.info(f"zc.add_service(): {type_}, {name}, {zc}")
+    def _zc_matches(self, zc, type_: str, name: str) -> bool:
+        try:
+            info = zc.get_service_info(type_, name, 2000)
+        except Exception as ex:
+            _LOGGER.debug(f"_zc_matches(): resolve failed: {ex}")
+            return False
+        if info is None:
+            return False
+        if info.port != self._config.get("port"):
+            return False
+        return self._config.get("host") in info.parsed_addresses()
 
-    def remove_service(self, zc, type_: str, name: str) -> None:
-        _LOGGER.info(f"zc.remove_service(): {type_}, {name}, {zc}")
+    def add_service(self, zc, type_: str, name: str) -> None:
+        _LOGGER.info(f"zc.add_service(): {type_}, {name}")
+        if self._auto_connect and self._zc_matches(zc, type_, name):
+            self.hass.add_job(self._async_auto_connect)
 
     def update_service(self, zc, type_: str, name: str) -> None:
-        _LOGGER.info(f"zc.update_service(): {type_}, {name}, {zc}")
+        _LOGGER.info(f"zc.update_service(): {type_}, {name}")
+        if self._auto_connect and self._zc_matches(zc, type_, name):
+            self.hass.add_job(self._async_auto_connect)
+
+    def remove_service(self, zc, type_: str, name: str) -> None:
+        _LOGGER.info(f"zc.remove_service(): {type_}, {name}")
+
+    def set_auto_connect(self, value: bool) -> None:
+        self._auto_connect = value
+
+    async def _async_auto_connect(self):
+        if not self.enabled:
+            await self.async_toggle_enabled(True)
 
     async def _async_update(self):
         return {
