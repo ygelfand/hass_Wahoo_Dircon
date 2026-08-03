@@ -18,6 +18,9 @@ class DirconTcpClient:
 
         self._status = DC_STATUS_DISCONNECTED
 
+        self._reader = None
+        self._writer = None
+
         self._seq = 0
 
         self._chr_listeners = []
@@ -36,7 +39,7 @@ class DirconTcpClient:
 
     @property
     def _next_seq(self) -> int:
-        self._seq += 1
+        self._seq = (self._seq + 1) & 0xFF
         return self._seq
 
     async def _async_read_packet(self) -> protocol.DirconPacket:
@@ -60,7 +63,7 @@ class DirconTcpClient:
 
         resp = await self._async_read_packet()
         if not resp.is_success():
-            _LOGGER.warn(f"_async_configure(): Failed to discover services")
+            _LOGGER.warning(f"_async_configure(): Failed to discover services")
             return None
 
         result = []
@@ -71,7 +74,7 @@ class DirconTcpClient:
             await self._async_write_packet(disc_chr)
             resp = await self._async_read_packet()
             if not resp.is_success():
-                _LOGGER.warn(f"_async_configure(): Failed to discover characteristics of 0x{uuid:x}")
+                _LOGGER.warning(f"_async_configure(): Failed to discover characteristics of 0x{uuid:x}")
                 return None
             for i in range(len(resp._uuids)):
                 ch_uuid = resp._uuids[i]
@@ -107,20 +110,25 @@ class DirconTcpClient:
             # return resp._data
             return True
 
-        except Exception as ex:
-            _LOGGER.error(f"async_write(): Failed to write", ex)
+        except OSError as ex:
+            _LOGGER.warning("async_write(): Failed to write: %s", ex)
+            return False
+        except Exception:
+            _LOGGER.exception("async_write(): Failed to write")
             return False
 
     async def async_close(self):
-        if self._status == DC_STATUS_DISCONNECTED:
+        if self._status == DC_STATUS_DISCONNECTED or self._writer is None:
             _LOGGER.info(f"async_close(): Skip closing as not connected")
             return
         try:
             self._writer.close()
             await self._writer.wait_closed()
             _LOGGER.info(f"async_close(): Closed connection")
-        except Exception as ex:
-            _LOGGER.error(f"async_close(): Failed to close", ex)
+        except OSError as ex:
+            _LOGGER.warning("async_close(): Failed to close: %s", ex)
+        except Exception:
+            _LOGGER.exception("async_close(): Failed to close")
 
 
     async def async_run(self, read_chrs: list, notify_chrs: list, listen: bool = False) -> bool:
@@ -129,7 +137,7 @@ class DirconTcpClient:
             self._reader, self._writer = await asyncio.open_connection(self._host, self._port)
 
             _LOGGER.debug(f"async_run(): TCP connection opened")
-            self._set_status(DC_STATUS_CONNECTING)
+            self._set_status(DC_STATUS_CONFIGURING)
             
             commands = await self._async_configure(read_chrs, notify_chrs)
 
@@ -146,7 +154,7 @@ class DirconTcpClient:
                             break
                     resp = await self._async_read_packet()
                     if not resp.is_success():
-                        _LOGGER.warn(f"async_run(): Invalid response received: 0x{resp._code:x}")
+                        _LOGGER.warning(f"async_run(): Invalid response received: 0x{resp._code:x}")
                         break
                     if not resp._uuids:
                         # e.g. bare acknowledgements with no characteristic UUID
@@ -160,10 +168,19 @@ class DirconTcpClient:
             await self._writer.wait_closed()
             return True if commands else False
 
-        except Exception as ex:
-            _LOGGER.error(f"Failed to open Tcp connection to {self._host}:{self._port}", ex)
+        except (OSError, asyncio.TimeoutError, asyncio.IncompleteReadError) as ex:
+            _LOGGER.warning("async_run(): Connection to %s:%s failed: %s", self._host, self._port, ex)
+            self._set_status(DC_STATUS_DISCONNECTED)
+            return False
+        except asyncio.CancelledError:
+            self._set_status(DC_STATUS_DISCONNECTED)
+            raise
+        except Exception:
+            _LOGGER.exception("async_run(): Unexpected error talking to %s:%s", self._host, self._port)
             self._set_status(DC_STATUS_DISCONNECTED)
             return False
         finally:
+            if self._writer is not None:
+                self._writer.close()
             self._reader = None
             self._writer = None

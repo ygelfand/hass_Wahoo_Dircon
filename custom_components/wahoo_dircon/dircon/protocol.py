@@ -101,8 +101,8 @@ class DirconPacket:
             self._data = body[16:]
             return self
 
-        _LOGGER.warn(f"parse_response(): Unknown packet: Header: {header.hex(':')}")
-        _LOGGER.warn(f"parse_response(): Unknown packet: Body:   {body.hex(':')}")
+        _LOGGER.warning(f"parse_response(): Unknown packet: Header: {header.hex(':')}")
+        _LOGGER.warning(f"parse_response(): Unknown packet: Body:   {body.hex(':')}")
         return self
 
     def is_success(self):
